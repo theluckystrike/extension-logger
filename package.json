@@ -1,0 +1,42 @@
+{
+    "name": "extension-logger",
+    "version": "0.1.0",
+    "description": "Structured logging for Chrome extensions — log levels, context tags, storage persistence, export, and performance timing. Zero dependencies.",
+    "author": "Zovo <hello@zovo.one>",
+    "license": "MIT",
+    "keywords": [
+        "chrome-extension",
+        "logger",
+        "logging",
+        "debug",
+        "console",
+        "log-levels",
+        "structured-logging",
+        "manifest-v3",
+        "browser-extension",
+        "devtools"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/theluckystrike/extension-logger.git"
+    },
+    "homepage": "https://github.com/theluckystrike/extension-logger",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "test": "jest",
+        "prepublishOnly": "npm run build"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.260",
+        "@types/jest": "^29.5.12",
+        "typescript": "^5.3.3"
+    }
+}
