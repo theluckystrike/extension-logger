@@ -1,10 +1,15 @@
 # extension-logger
 
-Structured logging utility for Chrome extensions.
+Structured logging for Chrome extensions with log levels, context tags, storage persistence, export capabilities, and performance timing. Zero dependencies.
 
-## Overview
+## Features
 
-extension-logger provides a structured logging solution for Chrome extensions with log levels, formatting, and optional remote transport support.
+- Log levels: debug, info, warn, error
+- Context-based logging with scoped child loggers
+- Optional storage persistence using chrome.storage.local
+- Export logs as JSON, CSV, or plain text
+- Built-in performance timer for measuring execution time
+- Colored console output with consistent styling
 
 ## Installation
 
@@ -14,9 +19,9 @@ npm install extension-logger
 
 ## Usage
 
-### Basic Logging
+### Basic Logger
 
-```javascript
+```typescript
 import { Logger } from 'extension-logger';
 
 const logger = new Logger('my-extension');
@@ -28,112 +33,176 @@ logger.error('Failed to load data', { error });
 
 ### Log Levels
 
-```javascript
-import { Logger, levels } from 'extension-logger';
+```typescript
+const logger = new Logger('app', { minLevel: 'debug' });
 
-const logger = new Logger('app', {
-  level: levels.DEBUG,  // Set minimum log level
-});
-
-// Different levels
-logger.trace('Detailed trace info');
 logger.debug('Debug information');
 logger.info('Normal operation');
 logger.warn('Warning message');
 logger.error('Error occurred');
-logger.fatal('Critical failure');
 ```
 
-### With Context
+### Persisting Logs to Storage
 
-```javascript
-const logger = new Logger('my-extension');
+```typescript
+const logger = new Logger('my-extension', { persist: true });
 
-logger.info('User logged in', {
-  userId: '12345',
-  email: 'user@example.com',
-  timestamp: new Date().toISOString(),
+// Logs will be stored in chrome.storage.local
+logger.info('User logged in', { userId: '12345' });
+```
+
+### Child Loggers
+
+```typescript
+const logger = new Logger('app');
+const childLogger = logger.child('auth');
+
+childLogger.info('User authenticated'); // Logs with context "app:auth"
+```
+
+### Retrieving Stored Logs
+
+```typescript
+import { LogStorage } from 'extension-logger';
+
+// Get all stored logs
+const allLogs = await LogStorage.getAll();
+
+// Get logs by level
+const errors = await LogStorage.getByLevel('error');
+
+// Get recent logs (last 30 minutes)
+const recent = await LogStorage.getRecent(30);
+
+// Get logs by context prefix
+const authLogs = await LogStorage.getByContext('app:auth');
+
+// Get count by level
+const counts = await LogStorage.getCounts();
+// { debug: 10, info: 50, warn: 5, error: 2 }
+
+// Clear all logs
+await LogStorage.clear();
+```
+
+### Exporting Logs
+
+```typescript
+import { Logger, LogStorage, LogExporter } from 'extension-logger';
+
+// Get logs from storage
+const logs = await LogStorage.getRecent(60);
+
+// Export as JSON file
+LogExporter.exportJSON(logs, 'my-logs.json');
+
+// Get as plain text
+const text = LogExporter.toText(logs);
+
+// Get as CSV
+const csv = LogExporter.toCSV(logs);
+```
+
+### Performance Timer
+
+```typescript
+import { Logger, PerfTimer } from 'extension-logger';
+
+const logger = new Logger('perf');
+const timer = new PerfTimer(logger);
+
+// Simple timing
+timer.start('fetch-data');
+await fetchData();
+timer.end('fetch-data'); // Logs: "fetch-data: 123.45ms"
+
+// Measure function execution
+await timer.measure('async-operation', async () => {
+  // Your async code here
 });
 ```
 
-### Browser Extension Specific
+## API Reference
 
-```javascript
-import { Logger } from 'extension-logger';
+### Logger
 
-// Logs to console and optionally to background storage
-const logger = new Logger('popup', {
-  background: true,  // Also log to background script
-  maxEntries: 100,  // Keep last 100 logs in storage
-});
-
-// In popup/options/background scripts
-logger.info('Popup opened');
+```typescript
+new Logger(context: string, options?: { minLevel?: LogLevel; persist?: boolean })
 ```
 
-## API
+- `context` - Logger identifier, used as prefix in all log messages
+- `minLevel` - Minimum log level to output (default: 'debug')
+- `persist` - Whether to persist logs to chrome.storage.local (default: false)
 
-### Logger Options
+**Methods**
+- `debug(message: string, data?: unknown)` - Log at debug level
+- `info(message: string, data?: unknown)` - Log at info level
+- `warn(message: string, data?: unknown)` - Log at warn level
+- `error(message: string, data?: unknown)` - Log at error level
+- `child(context: string)` - Create child logger with scoped context
+- `getEntries()` - Get all buffered log entries
+- `clear()` - Clear the internal buffer
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| name | string | required | Logger name/prefix |
-| level | Level | INFO | Minimum log level |
-| background | boolean | false | Log to background storage |
-| maxEntries | number | 100 | Max logs to store |
+### LogStorage (Static)
 
-### Log Levels
+- `getAll()` - Get all persisted logs
+- `getByLevel(level: LogLevel)` - Get logs filtered by level
+- `getRecent(minutes: number)` - Get logs from last N minutes
+- `getByContext(context: string)` - Get logs by context prefix
+- `clear()` - Clear all stored logs
+- `getCounts()` - Get count of logs by level
 
-- `levels.TRACE` - Most verbose
-- `levels.DEBUG` - Debug information
-- `levels.INFO` - Normal operation (default)
-- `levels.WARN` - Warning messages
-- `levels.ERROR` - Error messages
-- `levels.FATAL` - Critical failures
+### LogExporter (Static)
 
-### Methods
+- `exportJSON(entries: LogEntry[], filename?: string)` - Download as JSON file
+- `toText(entries: LogEntry[])` - Convert to plain text
+- `toCSV(entries: LogEntry[])` - Convert to CSV format
 
-- `trace(message, context?)` - Log trace message
-- `debug(message, context?)` - Log debug message
-- `info(message, context?)` - Log info message
-- `warn(message, context?)` - Log warning
-- `error(message, context?)` - Log error
-- `fatal(message, context?)` - Log fatal error
+### PerfTimer
 
-## Transport Options
-
-### Console Transport (Default)
-
-Logs to browser console.
-
-### Storage Transport
-
-```javascript
-const logger = new Logger('app', {
-  transport: 'storage',
-});
+```typescript
+new PerfTimer(logger?: Logger)
 ```
 
-### Custom Transport
+- `start(label: string)` - Start a named timer
+- `end(label: string)` - End timer and log duration
+- `measure(label: string, fn: () => T)` - Measure async function execution
+- `getActive()` - Get list of active timer labels
 
-```javascript
-const logger = new Logger('app', {
-  transport: (level, message, context) => {
-    // Send to your backend
-    fetch('/logs', {
-      method: 'POST',
-      body: JSON.stringify({ level, message, context }),
-    });
-  },
-});
+### Types
+
+```typescript
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+interface LogEntry {
+  level: LogLevel;
+  message: string;
+  context?: string;
+  data?: unknown;
+  timestamp: number;
+}
 ```
 
-## Browser Support
+## Requirements
 
-- Chrome 90+
-- Edge 90+
-- Firefox 90+
+- Chrome extension environment with access to chrome.storage API
+- TypeScript 5.3.3 or later for development
 
-## License
+## Building
 
-MIT
+```bash
+npm install
+npm run build
+```
+
+## Testing
+
+```bash
+npm test
+```
+
+## About
+
+extension-logger is maintained by theluckystrike and designed for building Chrome extensions with structured logging capabilities. It provides a lightweight solution for debugging and monitoring extension behavior without external dependencies.
+
+For questions and support, please open an issue on GitHub.
