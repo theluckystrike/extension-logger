@@ -36,6 +36,16 @@
     "README.md",
     "LICENSE"
   ],
+  "bugs": {
+    "url": "https://github.com/theluckystrike/extension-logger/issues"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/theluckystrike/extension-logger"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
